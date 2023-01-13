@@ -7,11 +7,11 @@
 
 <body>
 
-    <form action="/login" method="GET" style="margin:15px; padding:10px;">
+    <form action="/login" method="post" style="margin:15px; padding:10px;">
         <div class="chat-message clearfix">
-            <input id="username" type="text" class="form-control" placeholder="Nombre" />
-            <input id="password" type="text" class="form-control" placeholder="Contraseña" />
-            <input id="enviar_datos_login" type="submit" class="form-control" placeholder="Enviar" />
+            <input name="username" type="text" class="form-control" placeholder="Nombre" />
+            <input name="password" type="text" class="form-control" placeholder="Contraseña" />
+            <input name="enviar_datos_login" type="submit" class="form-control" placeholder="Enviar" />
         </div>
     </form>
 </body>

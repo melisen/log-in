@@ -1,3 +1,4 @@
+
 const express = require("express")
 const session = require("express-session");
 const MongoStore = require("connect-mongo");
@@ -59,31 +60,8 @@ function crearProductosRandom(){
 const ContenedorFS =  require('./contenedor-fs.js');
 const mensajesFS = new ContenedorFS('./mensajes.json')
 
-const ContenedorMongoDB = require("./ContenedorMongoDB.js");
-const Schema = mongoose.Schema;
- const model = mongoose.model;
 
-const mensajeSchemaMongo = new Schema({
-    author:{
-        email: { type: String, required: true, max:100 },
-        nombre:  { type: String, required: true, max: 100 },
-        apellido: { type: String, required: true, max: 100 },
-        edad:  { type: String, required: true, max: 3 },
-        alias: { type: String, required: true, max: 100 },
-        avatar:  { type: String, required: true, max: 1000 },
-        fecha:  { type: String, required: true, max: 1000 },
-    },    
-    text:{type: String, required:true, max: 1000 }
-    
-});
-const modeloMensajes = model('modeloMensajes', mensajeSchemaMongo);
-const rutaMensajes = 'mongodb://127.0.0.1:27017/Mensajes-Mongo-DB';
-const baseMongo = 'Mensajes-Mongo-DB';
-const coleccionMensajes = 'mensajes';
-const Mensajes = new ContenedorMongoDB(rutaMensajes, modeloMensajes, baseMongo, coleccionMensajes );
-async function conectarMongo(){
-    await Mensajes.connectMG().then(()=> console.log("MongoDB conectado"))
-} 
+
 
 
 //RUTAS
@@ -104,23 +82,31 @@ app.use(
       secret: "secreto",
       resave: false,
       saveUninitialized: false,
-      ttl:600000
+      cookie: {
+        maxAge: 600000
+      }
     })
   );
 
 //LOGIN
-  app.get("/", (req, res) => {
+app.get("/", (req, res) => {
+  return res.redirect("/login")
+})
+
+  app.get("/login", (req, res) => {
     res.render("main", { layout: "login"})
-    
   });
 
-  app.post("/", (req, res) => {
+  app.post("/login", (req, res) => {
     const { username, password } = req.body;
-    if (username !== "pepe" || password !== "pepepass") {
-        res.send("login failed");
+
+    if (username == "pepe" || password == "pepepass") {
+      req.session.user = username;
+      req.session.password = password;
+      res.redirect("/api/productos");  
+      
     }else{
-        req.session.user = username;
-         res.redirect("/api/productos");
+      res.send("login failed")
     }
   })
 
@@ -129,7 +115,7 @@ app.use(
 
 //AUTH
   function auth(req, res, next) {
-    if (req.session && req.session.user === "pepe" && req.session.user === "pepepass") {
+    if (req.session && req.session?.user === "pepe" && req.session?.password === "pepepass") {
       return next();
     } else {
       return res.status(401).send("error de autorización!");
@@ -150,32 +136,20 @@ app.use(
     }
   });
 
-  app.post("/api/productos", async (req, res) => {
-    try{
-        return res.redirect("/logout");
-    }
-    catch(err){
-        console.log(err)
-    }
-  });
-
-
-
   app.get('/api/productos-test', auth, async (req, res)=>{
     res.render("main", { layout: "productos-test"})
 })
 
 //LOGOUT
 app.get("/logout", (req, res) => {
+  const {username} = req.body;
     req.session.destroy((err) => {
-      if (err) {
-        res.send("no se pudo deslogear");
+      if (err) {        
+        console.log(err)
+            res.send("no se pudo deslogear");
       } else {
-        res.render("main",{ 
-            layout: "logout",
-            username: username
-        });
-        setTimeout(res.render("main",{ layout: "login" }), 2000) 
+            res.render("main",{ layout: "logout", username: username });
+            //setTimeout(res.render("main",{ layout: "login" }), 2000) 
         }
     });
   });
@@ -201,13 +175,7 @@ function normlizarChat(messages){
 //*WEBSOCKET PRODUCTOS Y MENSAJES
 //'1) conexión del lado del servidor
 io.on('connection', async (socket) =>{
-    console.log(`io socket conectado ${socket.id}`);
-
-        
-        //conectarMongo()
-        //const listaMensajes = await Mensajes.listarTodos();
-        
-
+    console.log(`io socket conectado ${socket.id}`)
         const listaMensajes = await mensajesFS.getAll();
         
         //const normalizado = normlizarChat(listaMensajes)
@@ -215,7 +183,6 @@ io.on('connection', async (socket) =>{
         //const desnormalizado = denormalize(normalizado.result, TodosLosMensajesSchema, normalizado.entities);
         //console.log("desnormalizado", desnormalizado);
         socket.emit("mensajes", listaMensajes)
-
         socket.emit("productos", await arrayProductos.getAll())
         socket.emit("prod-test", crearProductosRandom())
 
@@ -227,19 +194,11 @@ io.on('connection', async (socket) =>{
                     io.sockets.emit('productos', listaActualizada)
                 })                
                 socket.on('new_msg', async (data)=>{
-                    //await Mensajes.guardar(data);
-                    //const listaMensajes = await Mensajes.listarTodos();
                     await mensajesFS.save(data);
                     const listaMensajes = await mensajesFS.getAll();
-                   
-                    
-                    io.sockets.emit('mensajes', listaMensajes)
-            
-                })
-                
-                
-                
-        })
+                    io.sockets.emit('mensajes', listaMensajes)            
+                })          
+})
 
         httpServer.listen(8080, ()=>{
             console.log('servidor de express iniciado')
