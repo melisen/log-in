@@ -72,7 +72,7 @@ app.use(
     session({
       store: MongoStore.create({
         mongoUrl:
-          "mongodb+srv://melisen:EFFkTlygr79N2nYi@cluster0.gvsgobk.mongodb.net/?retryWrites=true&w=majority",
+          "mongodb+srv://melisen:password-desafio@cluster-log-in.0sfa7eb.mongodb.net/?retryWrites=true&w=majority",
         mongoOptions: {
           useNewUrlParser: true,
           useUnifiedTopology: true,
@@ -140,6 +140,7 @@ app.get("/", (req, res) => {
     res.render("main", { layout: "productos-test"})
 })
 
+
 //LOGOUT
 app.get("/logout", (req, res) => {
   const {username} = req.body;
@@ -148,8 +149,12 @@ app.get("/logout", (req, res) => {
         console.log(err)
             res.send("no se pudo deslogear");
       } else {
+        
             res.render("main",{ layout: "logout", username: username });
-            //setTimeout(res.render("main",{ layout: "login" }), 2000) 
+            
+            setTimeout(
+              function(){res.redirect("/login")}, 
+              2000) 
         }
     });
   });
